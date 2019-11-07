@@ -1,5 +1,5 @@
 pipeline { 
-   agent {label 'Ansible'} 
+   agent {label 'terraform'} 
     stages{
         stage('Clone Cookbook from Git') {
             steps {
