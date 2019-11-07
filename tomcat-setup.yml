@@ -1,0 +1,90 @@
+-
+  name: Copy file to target servers
+  hosts: all
+  tasks:
+    - name: update-upgrade
+      apt:
+        upgrade: yes
+        update_cache: yes
+      become: yes
+    - name: install-jdk
+      apt:
+        name: default-jdk
+        state: present
+      become: yes
+    - name: create tomcate group
+      group:
+        name: tomcat
+      become: yes
+    - name: create tomcate user
+      user:
+         name: tomcat
+         system: yes
+         shell: /bin/bash
+         home: /opt/tomcat
+         state: present
+         group: tomcat
+      become: yes
+    - name: download tomcat
+      get_url:
+        url: http://apachemirror.wuchna.com/tomcat/tomcat-9/v9.0.27/bin/apache-tomcat-9.0.27.tar.gz
+        dest: /tmp/apache-tomcat-9.0.27.tar.gz
+      become: yes
+    - name: create tomcat dir
+      file:
+        path: /opt/tomcat
+        state: directory
+      become: yes
+    - name: extract tomcat
+      unarchive:
+          src: /tmp/apache-tomcat-9.0.27.tar.gz
+          dest: /opt/tomcat
+          extra_opts: --strip-components=1
+      become: yes
+    - name: change tomcat perm1
+      file:
+        path: /opt/tomcat
+        state: directory
+        recurse: yes
+        group: tomcat
+      become: yes
+    - name: change tomcat perm2
+      file:
+        path: /opt/tomcat/conf
+        state: directory
+        recurse: yes
+        mode: g+r
+      become: yes
+    - name: change tomcat perm3
+      file:
+        path: /opt/tomcat/conf
+        state: directory
+        recurse: no
+        mode: g+x
+      become: yes
+    - name: change tomcat multiple folders
+      file:
+        path: "{{ item }}"
+        state: directory
+        recurse: yes
+        owner: tomcat
+      with_items:
+          - /opt/tomcat/webapps/
+          - /opt/tomcat/work/
+          - /opt/tomcat/temp/
+          - /opt/tomcat/logs/
+      become: yes
+    - name: copy service file from project dir
+      copy:
+        src: ./tomcat.service
+        dest: /etc/systemd/system/tomcat.service
+      become: yes
+    - name: daemon reload
+      command: systemctl daemon-reload
+      become: yes
+    - name: start tomcat
+      service:
+        name: tomcat
+        state: started
+        enabled: yes
+      become: yes
